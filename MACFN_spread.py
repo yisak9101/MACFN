@@ -2,6 +2,7 @@ import random
 import numpy as np
 import torch
 import torch.nn as nn
+from itertools import product
 
 import torch.nn.functional as F
 import pickle
@@ -110,25 +111,15 @@ class FN(object):
 
     def select_action(self, obs, is_max):
         with torch.no_grad():
-
-            self.network()
-
-        sample_action = np.random.uniform(low=-self.max_action, high=self.max_action, size=(1000, action_dim))
-        with torch.no_grad():
-            sample_action = torch.Tensor(sample_action).to(device)
-            state = torch.FloatTensor(state.reshape(1, -1)).repeat(1000, 1).to(device)
-            edge_flow = self.network(state, sample_action).reshape(-1)
+            obs = torch.FloatTensor(obs.reshape(1, -1)).repeat(self.max_action, 1).to(device)
+            sample_action = np.arange(self.max_action)
+            edge_flow = self.network(obs, sample_action).reshape(-1)
             if is_max == 0:
                 idx = Categorical(edge_flow.float()).sample(torch.Size([1]))
                 action = sample_action[idx[0]]
             elif is_max == 1:
                 action = sample_action[edge_flow.argmax()]
         return action.cpu().data.numpy().flatten()
-
-    def set_uniform_action(self):
-        self.uniform_action = np.random.uniform(low=-max_action, high=max_action, size=(self.uniform_action_size, action_dim))
-        self.uniform_action = torch.Tensor(self.uniform_action).to(device)
-        return self.uniform_action
 
     def train(self, replay_buffer, frame_idx, batch_size=256, max_episode_steps=50, sample_flow_num=100):
         # Sample replay buffer
@@ -140,6 +131,8 @@ class FN(object):
         not_done = torch.FloatTensor(np.float32(not_done)).to(device)
 
         with torch.no_grad():
+            
+
             uniform_action = np.random.uniform(low=-max_action, high=max_action,
                                                size=(batch_size, max_episode_steps, sample_flow_num, action_dim))
             uniform_action = torch.Tensor(uniform_action).to(device)
