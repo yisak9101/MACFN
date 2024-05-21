@@ -83,9 +83,6 @@ max_episode_steps = 12
 env = PointEnv_MultiStep_Two_goal()
 test_env = PointEnv_MultiStep_Two_goal()
 
-env.reset()
-test_env.reset()
-
 action_dim = env.action_space.shape[0]
 state_dim = env.observation_space.shape[0]
 max_action = float(env.action_space.high[0])
@@ -114,9 +111,9 @@ state, done = env.reset(), False
 while frame_idx < max_frames:
 
     episode_timesteps += 1
-    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+    action = env.action_space.sample()
 
-    next_state, reward, done, _ = env.step(actions)
+    next_state, reward, done, _ = env.step(action)
     done_bool = float(done) if episode_timesteps < max_episode_steps else 0
     replay_buffer.add(state, action, next_state, reward, done_bool)
 

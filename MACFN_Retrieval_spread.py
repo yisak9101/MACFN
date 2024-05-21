@@ -94,7 +94,7 @@ class TrainRetrieval(object):
         torch.save(self.retrieval_optimizer.state_dict(), filename + "_retrieval_optimizer")
 
 
-max_episode_steps = 50
+max_episode_steps = 100
 n_agents = 3
 
 env = simple_spread_v3.parallel_env(N=n_agents, continuous_actions=True)

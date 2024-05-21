@@ -9,8 +9,6 @@ import torch.nn as nn
 
 import torch.nn.functional as F
 import pickle
-from IPython.display import clear_output
-from gym.wrappers import TimeLimit
 from torch.distributions import Categorical
 from PointRobotEnv import PointEnv_MultiStep_Two_goal
 use_cuda = torch.cuda.is_available()
@@ -94,7 +92,7 @@ class Network(nn.Module):
         return q1
 
 
-class FN(object):
+class CFN(object):
     def __init__(
             self,
             state_dim,
@@ -157,10 +155,10 @@ class FN(object):
             uniform_action = torch.Tensor(uniform_action).to(device)
             current_state = next_state.repeat(1, 1, sample_flow_num).reshape(batch_size, max_episode_steps,
                                                                              sample_flow_num, -1)
-            inflow_state = self.retrieval(current_state, uniform_action)
-            inflow_state = torch.cat([inflow_state, state.reshape(batch_size, max_episode_steps, -1, state_dim)], -2)
-            uniform_action = torch.cat([uniform_action, action.reshape(batch_size, max_episode_steps, -1, action_dim)], -2)
-        edge_inflow = self.network(inflow_state, uniform_action).reshape(batch_size, max_episode_steps, -1)
+            inflow_state = self.retrieval(current_state, uniform_action) # (batch_size, max_episode_steps, sample_flow_num, state_dim)
+            inflow_state = torch.cat([inflow_state, state.reshape(batch_size, max_episode_steps, -1, state_dim)], -2) # (batch_size, max_episode_steps, sample_flow_num+1, state_dim)
+            uniform_action = torch.cat([uniform_action, action.reshape(batch_size, max_episode_steps, -1, action_dim)], -2) # (batch_size, max_episode_steps, sample_flow_num+1, action_dim)
+        edge_inflow = self.network(inflow_state, uniform_action).reshape(batch_size, max_episode_steps, -1) # (batch_size, max_episode_steps, sample_flow_num+1)
         epi = torch.Tensor([1.0]).repeat(batch_size*max_episode_steps).reshape(batch_size,-1).to(device)
         inflow = torch.log(torch.sum(torch.exp(torch.log(edge_inflow)), -1) + epi)
 
@@ -169,8 +167,8 @@ class FN(object):
                                                size=(batch_size, max_episode_steps, sample_flow_num, action_dim))
             uniform_action = torch.Tensor(uniform_action).to(device)
             outflow_state = next_state.repeat(1, 1, (sample_flow_num+1)).reshape(batch_size, max_episode_steps, (sample_flow_num+1), -1)
-            last_action = torch.Tensor([0.0]).reshape([1,1,1]).repeat(batch_size,1,1).to(device)
-            last_action = torch.cat([action[:,1:,:], last_action], -2)
+            last_action = torch.Tensor([0.0]).reshape([1,1,1]).repeat(batch_size,1,1).to(device) # (batch_size, 1, 1)
+            last_action = torch.cat([action[:,1:,:], last_action], -2) # (batch_size, max_episode_steps, action_dim)
             uniform_action = torch.cat([uniform_action, last_action.reshape(batch_size, max_episode_steps, -1, action_dim)], -2)
 
         edge_outflow = self.network(outflow_state, uniform_action).reshape(batch_size, max_episode_steps, -1)
