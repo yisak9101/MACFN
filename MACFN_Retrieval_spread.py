@@ -1,4 +1,3 @@
-import gym
 from pettingzoo.mpe import simple_spread_v3
 import copy
 import numpy as np
@@ -54,10 +53,8 @@ class Retrieval(nn.Module):
 class TrainRetrieval(object):
     def __init__(
             self,
-            n_agents,
             obs_dim,
             action_dim,
-            max_action,
             discount=0.99,
             tau=0.005,
             policy_noise=0.2,
@@ -68,7 +65,6 @@ class TrainRetrieval(object):
         self.retrieval_target = copy.deepcopy(self.retrieval)
         self.retrieval_optimizer = torch.optim.Adam(self.retrieval.parameters(), lr=3e-4)
 
-        self.max_action = max_action
         self.discount = discount
         self.tau = tau
         self.policy_noise = policy_noise
@@ -101,18 +97,19 @@ class TrainRetrieval(object):
 max_episode_steps = 50
 n_agents = 3
 
-env = simple_spread_v3.parallel_env(N=n_agents)
-test_env = simple_spread_v3.parallel_env(N=n_agents)
+env = simple_spread_v3.parallel_env(N=n_agents, continuous_actions=True)
+test_env = simple_spread_v3.parallel_env(N=n_agents, continuous_actions=True)
 
 env.reset()
 test_env.reset()
 
-action_dim = 1
 obs_dim = 18
+action_dim = 5
+min_action = 0
 max_action = 1
 hidden_dim = 256
 
-policy = TrainRetrieval(n_agents, obs_dim, action_dim, max_action)
+policy = TrainRetrieval(obs_dim, action_dim)
 
 replay_buffer_size = 100000
 replay_buffer = utils.MAReplayBuffer(n_agents, obs_dim, action_dim)
@@ -140,7 +137,7 @@ while frame_idx < max_frames:
     next_observations, rewards, dones, truncations, infos = env.step(actions)
     reward = sum(rewards.values()) / len(rewards.values())
     done_bool = (True in dones.values() or True in truncations.values()) if episode_timesteps < max_episode_steps else 1
-    replay_buffer.add(np.array(list(observations.values())), np.array(list(actions.values())).reshape(n_agents, 1),
+    replay_buffer.add(np.array(list(observations.values())), np.array(list(actions.values())),
                       np.array(list(next_observations.values())), reward, done_bool)
 
     observations = next_observations

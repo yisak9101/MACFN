@@ -1,11 +1,14 @@
-from pettingzoo.mpe import simple_spread_v3
+from pettingzoo.mpe import simple_tag_v3
+env = simple_tag_v3.env(render_mode='human')
 
-env = simple_spread_v3.parallel_env(render_mode="human")
-observations, infos = env.reset()
+env.reset()
+for agent in env.agent_iter():
+    observation, reward, termination, truncation, info = env.last()
 
-while env.agents:
-    # this is where you would insert your policy
-    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+    if termination or truncation:
+        action = None
+    else:
+        action = env.action_space(agent).sample() # this is where you would insert your policy
 
-    observations, rewards, terminations, truncations, infos = env.step(actions)
+    env.step(action)
 env.close()

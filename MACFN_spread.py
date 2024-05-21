@@ -6,11 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import pickle
 from torch.distributions import Categorical
-from PointRobotEnv import PointEnv_MultiStep_Two_goal
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
-from torch.utils.tensorboard import SummaryWriter
-from datetime import datetime
 
 class MAReplayBuffer:
     def __init__(self, capacity):
